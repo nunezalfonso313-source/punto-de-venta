@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Punto de Venta Profesional</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Librerías para QR/Barras e Impresión -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     @media print {
       body * { visibility: hidden; }
@@ -43,28 +46,74 @@
     
     <!-- PESTAÑA 1: VENTA / CATÁLOGO -->
     <section id="tab-sales" class="tab-content space-y-4">
-      <div class="flex justify-between items-center gap-2">
-        <input type="text" id="search-sales" oninput="renderCatalog()" placeholder="🔍 Buscar producto por nombre o categoría..." class="w-full p-2 border rounded-lg text-sm shadow-sm">
+      <div class="flex gap-2">
+        <input type="text" id="search-sales" oninput="renderCatalog()" placeholder="🔍 Buscar por nombre, categoría o código..." class="w-full p-2 border rounded-lg text-sm shadow-sm">
+        <button onclick="toggleScanner('sales')" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-purple-700">
+          📷 Escanear
+        </button>
       </div>
+
+      <!-- VISOR DE CÁMARA PARA ESCÁNER -->
+      <div id="scanner-container" class="hidden bg-black rounded-lg p-2 relative">
+        <div id="reader" class="w-full"></div>
+        <button onclick="stopScanner()" class="mt-2 w-full bg-red-600 text-white text-xs py-1.5 rounded font-bold">Cerrar Cámara</button>
+      </div>
+
       <div id="catalog-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <p class="text-gray-400 text-sm col-span-full">Cargando catálogo...</p>
       </div>
     </section>
 
-    <!-- PESTAÑA 2: INVENTARIO -->
+    <!-- PESTAÑA 2: INVENTARIO AVANZADO -->
     <section id="tab-inventory" class="tab-content hidden space-y-6">
+      
+      <!-- FORMULARIO DE PRODUCTO -->
       <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 id="form-title" class="text-lg font-bold mb-3 text-gray-700">➕ Agregar / Editar Producto</h2>
+        <h2 id="form-title" class="text-lg font-bold mb-3 text-gray-700">➕ Registrar / Editar Producto</h2>
         <form id="form-product" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input type="hidden" id="p-id">
-          <input type="text" id="p-name" placeholder="Nombre (ej. Coca Cola)" class="border p-2 text-sm rounded sm:col-span-2" required>
-          <input type="text" id="p-cat" placeholder="Categoría" class="border p-2 text-sm rounded" required>
-          <input type="number" step="0.5" id="p-price" placeholder="Precio ($)" class="border p-2 text-sm rounded" required>
-          <input type="number" id="p-stock" placeholder="Stock disponible" class="border p-2 text-sm rounded sm:col-span-2" required>
           
-          <div class="sm:col-span-2 flex gap-2">
+          <input type="text" id="p-name" placeholder="Nombre (ej. Queso Oaxaca)" class="border p-2 text-sm rounded sm:col-span-2" required>
+          <input type="text" id="p-cat" placeholder="Categoría (ej. Lácteos)" class="border p-2 text-sm rounded" required>
+          
+          <div class="flex gap-1">
+            <input type="text" id="p-barcode" placeholder="Código de Barras / QR" class="border p-2 text-sm rounded w-full">
+            <button type="button" onclick="generateBarcodeQuick()" class="bg-gray-200 text-xs px-2 rounded hover:bg-gray-300 font-bold" title="Generar código aleatorio">⚡ Auto</button>
+          </div>
+
+          <div class="flex gap-2">
+            <select id="p-unit" class="border p-2 text-sm rounded bg-white w-full">
+              <option value="pz">pieza (pz)</option>
+              <option value="kg">kilogramo (kg)</option>
+              <option value="g">gramos (g)</option>
+              <option value="L">litros (L)</option>
+              <option value="m">metros (m)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-gray-500 font-bold">COSTO DE COMPRA ($)</label>
+            <input type="number" step="0.01" id="p-cost" placeholder="0.00" class="border p-2 text-sm rounded w-full" required>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-gray-500 font-bold">PRECIO DE VENTA ($)</label>
+            <input type="number" step="0.01" id="p-price" placeholder="0.00" class="border p-2 text-sm rounded w-full" required>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-gray-500 font-bold">STOCK ACTUAL</label>
+            <input type="number" step="0.001" id="p-stock" placeholder="Cantidad" class="border p-2 text-sm rounded w-full" required>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-gray-500 font-bold">STOCK MÍNIMO (ALERTA)</label>
+            <input type="number" step="0.001" id="p-min-stock" placeholder="5" class="border p-2 text-sm rounded w-full" value="5" required>
+          </div>
+
+          <div class="sm:col-span-2 flex gap-2 pt-2">
             <button type="submit" id="btn-save-prod" class="flex-1 bg-green-600 text-white font-bold py-2 text-sm rounded hover:bg-green-700">
-              Guardar
+              Guardar Producto
             </button>
             <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden bg-gray-400 text-white font-bold px-4 py-2 text-sm rounded hover:bg-gray-500">
               Cancelar
@@ -73,11 +122,28 @@
         </form>
       </div>
 
+      <!-- RESUMEN DE VALOR DE INVENTARIO -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
+          <p class="text-[10px] font-bold text-blue-600">VALOR INVENTARIO (VENTA)</p>
+          <p id="inv-val-sale" class="text-md font-bold text-blue-800">$0.00</p>
+        </div>
+        <div class="bg-purple-50 p-3 rounded-lg border border-purple-200 text-center">
+          <p class="text-[10px] font-bold text-purple-600">INVERSIÓN TOTAL (COSTO)</p>
+          <p id="inv-val-cost" class="text-md font-bold text-purple-800">$0.00</p>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg border border-green-200 text-center col-span-2 sm:col-span-1">
+          <p class="text-[10px] font-bold text-green-600">GANANCIA ESTIMADA</p>
+          <p id="inv-val-profit" class="text-md font-bold text-green-800">$0.00</p>
+        </div>
+      </div>
+
+      <!-- LISTA DE INVENTARIO -->
       <div class="bg-white p-4 rounded-lg shadow-md">
         <div class="flex justify-between items-center mb-3">
-          <h2 class="text-lg font-bold text-gray-700">📦 Control de Inventario</h2>
+          <h2 class="text-lg font-bold text-gray-700">📦 Control de Existencias</h2>
         </div>
-        <input type="text" id="search-inventory" oninput="renderInventory()" placeholder="🔍 Filtrar inventario..." class="w-full p-2 border rounded-lg text-sm mb-3">
+        <input type="text" id="search-inventory" oninput="renderInventory()" placeholder="🔍 Filtrar inventario por nombre o código..." class="w-full p-2 border rounded-lg text-sm mb-3">
         <div id="inventory-list" class="space-y-2">
           <p class="text-gray-400 text-sm">Cargando inventario...</p>
         </div>
@@ -127,10 +193,10 @@
       </div>
     </section>
 
-    <!-- PESTAÑA 4: REPORTES & CORTE DE CAJA -->
+    <!-- PESTAÑA 4: REPORTES, GANANCIAS Y CORTE DE CAJA -->
     <section id="tab-reports" class="tab-content hidden space-y-4">
       
-      <!-- RESUMEN / CORTE DIARIO -->
+      <!-- RESUMEN / CORTE DIARIO Y GANANCIAS -->
       <div class="bg-white p-4 rounded-lg shadow-md space-y-3">
         <h2 class="text-lg font-bold text-gray-700 flex justify-between items-center">
           <span>📊 Corte de Caja (Hoy)</span>
@@ -141,17 +207,17 @@
             <p class="text-xs text-green-600 font-bold">TOTAL VENDIDO</p>
             <p id="corte-total" class="text-lg font-extrabold text-green-700">$0.00</p>
           </div>
+          <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+            <p class="text-xs text-emerald-600 font-bold">GANANCIA BRUTA</p>
+            <p id="corte-ganancia" class="text-lg font-extrabold text-emerald-700">$0.00</p>
+          </div>
           <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p class="text-xs text-blue-600 font-bold">EFECTIVO</p>
             <p id="corte-efectivo" class="text-md font-bold text-blue-700">$0.00</p>
           </div>
           <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
-            <p class="text-xs text-purple-600 font-bold">TARJETA</p>
-            <p id="corte-tarjeta" class="text-md font-bold text-purple-700">$0.00</p>
-          </div>
-          <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
-            <p class="text-xs text-orange-600 font-bold">TRANSFERENCIA</p>
-            <p id="corte-transfer" class="text-md font-bold text-orange-700">$0.00</p>
+            <p class="text-xs text-purple-600 font-bold">TARJETA / TRANSF.</p>
+            <p id="corte-digital" class="text-md font-bold text-purple-700">$0.00</p>
           </div>
         </div>
       </div>
@@ -167,7 +233,20 @@
 
   </main>
 
-  <!-- PLANTILLA DE TICKET OCULTA (SOLO PARA IMPRESIÓN / VISTA PREVIA) -->
+  <!-- MODAL DE CÓDIGO QR PARA IMPRIMIR ETIQUETA -->
+  <div id="qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-30">
+    <div class="bg-white p-6 rounded-lg max-w-xs w-full text-center space-y-3">
+      <h3 id="qr-modal-name" class="font-bold text-gray-800"></h3>
+      <div id="qr-modal-canvas" class="flex justify-center"></div>
+      <p id="qr-modal-code" class="text-xs text-gray-500 font-mono"></p>
+      <div class="flex gap-2">
+        <button onclick="printQrLabel()" class="flex-1 bg-blue-600 text-white text-xs py-2 rounded font-bold hover:bg-blue-700">🖨️ Imprimir</button>
+        <button onclick="closeQrModal()" class="bg-gray-300 text-gray-700 text-xs px-3 py-2 rounded font-bold hover:bg-gray-400">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANTILLA DE TICKET OCULTA (SOLO PARA IMPRESIÓN) -->
   <div id="printable-ticket" class="hidden p-4 bg-white text-black font-mono text-xs max-w-xs mx-auto">
     <div class="text-center mb-2">
       <h2 class="font-bold text-sm">MI NEGOCIO / POS</h2>
@@ -209,10 +288,12 @@
     const API_URL = "https://pos-backend-api.nunezalfonso313.workers.dev/api";
     let cart = [];
     let products = [];
+    let html5QrcodeScanner = null;
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      stopScanner();
 
       if (tabName === 'reports') fetchSales();
 
@@ -231,57 +312,112 @@
         products = await res.json();
         renderCatalog();
         renderInventory();
+        calculateInventoryValues();
       } catch (err) {
         console.error("Error al cargar productos:", err);
       }
     }
 
+    function calculateInventoryValues() {
+      let valSale = 0, valCost = 0;
+      products.forEach(p => {
+        valSale += (p.price * p.stock);
+        valCost += ((p.cost_price || 0) * p.stock);
+      });
+      document.getElementById('inv-val-sale').innerText = `$${valSale.toFixed(2)}`;
+      document.getElementById('inv-val-cost').innerText = `$${valCost.toFixed(2)}`;
+      document.getElementById('inv-val-profit').innerText = `$${(valSale - valCost).toFixed(2)}`;
+    }
+
     function renderCatalog() {
-      const query = document.getElementById('search-sales').value.toLowerCase();
+      const query = document.getElementById('search-sales').value.toLowerCase().trim();
       const container = document.getElementById('catalog-list');
-      const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        p.category.toLowerCase().includes(query) ||
+        (p.barcode && p.barcode.toLowerCase().includes(query))
+      );
 
       if (filtered.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-sm col-span-full">No se encontraron productos.</p>';
         return;
       }
 
-      container.innerHTML = filtered.map(p => `
-        <div class="border p-3 rounded-lg flex justify-between items-center bg-white shadow-sm">
-          <div>
-            <h3 class="font-bold text-gray-800 text-sm">${p.name}</h3>
-            <p class="text-xs text-gray-500">${p.category} | Stock: <span class="${p.stock <= 5 ? 'text-red-500 font-bold' : ''}">${p.stock}</span></p>
-            <p class="text-sm font-semibold text-green-600">$${p.price}</p>
+      container.innerHTML = filtered.map(p => {
+        const unit = p.unit || 'pz';
+        const isLow = p.stock <= (p.min_stock || 5);
+        return `
+          <div class="border p-3 rounded-lg flex justify-between items-center bg-white shadow-sm ${isLow ? 'border-l-4 border-l-red-500' : ''}">
+            <div>
+              <h3 class="font-bold text-gray-800 text-sm">${p.name}</h3>
+              <p class="text-xs text-gray-500">${p.category} | Stock: <span class="${isLow ? 'text-red-600 font-bold' : ''}">${p.stock} ${unit}</span></p>
+              <p class="text-sm font-semibold text-green-600">$${p.price} / ${unit}</p>
+            </div>
+            <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700 disabled:bg-gray-300">
+              ${p.stock <= 0 ? 'Agotado' : '+ Agregar'}
+            </button>
           </div>
-          <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700 disabled:bg-gray-300">
-            ${p.stock <= 0 ? 'Agotado' : '+ Agregar'}
-          </button>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function renderInventory() {
-      const query = document.getElementById('search-inventory').value.toLowerCase();
+      const query = document.getElementById('search-inventory').value.toLowerCase().trim();
       const container = document.getElementById('inventory-list');
-      const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        p.category.toLowerCase().includes(query) ||
+        (p.barcode && p.barcode.toLowerCase().includes(query))
+      );
 
       if (filtered.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-sm">Sin coincidencias.</p>';
         return;
       }
 
-      container.innerHTML = filtered.map(p => `
-        <div class="border p-2 rounded flex justify-between items-center text-xs bg-gray-50">
-          <div>
-            <span class="font-bold text-gray-800">${p.name}</span>
-            <span class="text-gray-500">($${p.price} - Stock: <b>${p.stock}</b>)</span>
+      container.innerHTML = filtered.map(p => {
+        const unit = p.unit || 'pz';
+        const isLow = p.stock <= (p.min_stock || 5);
+        return `
+          <div class="border p-2 rounded flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs ${isLow ? 'bg-red-50 border-red-200' : 'bg-gray-50'}">
+            <div>
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-gray-800 text-sm">${p.name}</span>
+                ${isLow ? '<span class="bg-red-500 text-white text-[9px] px-1 rounded font-bold">⚠️ STOCK BAJO</span>' : ''}
+              </div>
+              <p class="text-gray-500">
+                Cat: ${p.category} | Costo: $${p.cost_price || 0} | Venta: $${p.price} | Stock: <b>${p.stock} ${unit}</b> (Mín: ${p.min_stock || 5})
+              </p>
+              ${p.barcode ? `<p class="text-[10px] text-gray-400 font-mono">Código: ${p.barcode}</p>` : ''}
+            </div>
+            <div class="flex gap-1 self-end sm:self-center">
+              <button onclick="quickRestock('${p.id}')" class="bg-green-600 text-white px-2 py-1 rounded font-bold hover:bg-green-700" title="Sumar inventario rápidó">+ Reabastecer</button>
+              ${p.barcode ? `<button onclick="showQrModal('${p.id}')" class="bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700">📱 QR</button>` : ''}
+              <button onclick="editProduct('${p.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">✏️ Editar</button>
+              <button onclick="deleteProduct('${p.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">🗑️</button>
+            </div>
           </div>
-          <div class="flex gap-1">
-            <button onclick="editProduct('${p.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">✏️ Editar</button>
-            <button onclick="deleteProduct('${p.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">🗑️</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
+    }
+
+    async function quickRestock(id) {
+      const p = products.find(prod => prod.id === id);
+      if (!p) return;
+      const addQty = prompt(`Reabastecer "${p.name}" (Stock actual: ${p.stock} ${p.unit || 'pz'}):\n¿Cuántas unidades deseas agregar?`);
+      if (!addQty || isNaN(addQty) || parseFloat(addQty) <= 0) return;
+
+      const newStock = p.stock + parseFloat(addQty);
+      await fetch(`${API_URL}/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...p, stock: newStock })
+      });
+      fetchProducts();
+    }
+
+    function generateBarcodeQuick() {
+      document.getElementById('p-barcode').value = "750" + Math.floor(100000000 + Math.random() * 900000000);
     }
 
     document.getElementById('form-product').addEventListener('submit', async (e) => {
@@ -291,8 +427,12 @@
         id: id || "p_" + Date.now(),
         name: document.getElementById('p-name').value,
         category: document.getElementById('p-cat').value,
+        barcode: document.getElementById('p-barcode').value.trim(),
+        unit: document.getElementById('p-unit').value,
+        cost_price: parseFloat(document.getElementById('p-cost').value) || 0,
         price: parseFloat(document.getElementById('p-price').value),
-        stock: parseInt(document.getElementById('p-stock').value)
+        stock: parseFloat(document.getElementById('p-stock').value),
+        min_stock: parseFloat(document.getElementById('p-min-stock').value) || 5
       };
 
       await fetch(id ? `${API_URL}/products/${id}` : `${API_URL}/products`, {
@@ -311,10 +451,15 @@
       document.getElementById('p-id').value = p.id;
       document.getElementById('p-name').value = p.name;
       document.getElementById('p-cat').value = p.category;
+      document.getElementById('p-barcode').value = p.barcode || '';
+      document.getElementById('p-unit').value = p.unit || 'pz';
+      document.getElementById('p-cost').value = p.cost_price || 0;
       document.getElementById('p-price').value = p.price;
       document.getElementById('p-stock').value = p.stock;
+      document.getElementById('p-min-stock').value = p.min_stock || 5;
+      
       document.getElementById('form-title').innerText = "✏️ Editar Producto / Stock";
-      document.getElementById('btn-save-prod').innerText = "Actualizar";
+      document.getElementById('btn-save-prod').innerText = "Actualizar Producto";
       document.getElementById('btn-cancel-edit').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -322,8 +467,8 @@
     function resetForm() {
       document.getElementById('form-product').reset();
       document.getElementById('p-id').value = '';
-      document.getElementById('form-title').innerText = "➕ Agregar / Editar Producto";
-      document.getElementById('btn-save-prod').innerText = "Guardar";
+      document.getElementById('form-title').innerText = "➕ Registrar / Editar Producto";
+      document.getElementById('btn-save-prod').innerText = "Guardar Producto";
       document.getElementById('btn-cancel-edit').classList.add('hidden');
     }
 
@@ -333,15 +478,28 @@
       fetchProducts();
     }
 
-    function addToCart(id) {
+    function addToCart(id, qtyToAdd = null) {
       const prod = products.find(p => p.id === id);
       if (!prod) return;
+
+      let qty = qtyToAdd;
+      if (qty === null) {
+        if (prod.unit === 'kg' || prod.unit === 'g' || prod.unit === 'L' || prod.unit === 'm') {
+          const inputQty = prompt(`Venta por ${prod.unit} - "${prod.name}":\nIngresa la cantidad a vender (${prod.unit}):`, "1");
+          if (!inputQty || isNaN(inputQty) || parseFloat(inputQty) <= 0) return;
+          qty = parseFloat(inputQty);
+        } else {
+          qty = 1;
+        }
+      }
+
       const item = cart.find(c => c.id === id);
       if (item) {
-        if (item.qty >= prod.stock) { alert("Stock máximo alcanzado."); return; }
-        item.qty++;
+        if ((item.qty + qty) > prod.stock) { alert("Stock máximo alcanzado."); return; }
+        item.qty += qty;
       } else {
-        cart.push({ ...prod, qty: 1 });
+        if (qty > prod.stock) { alert("Stock insuficiente."); return; }
+        cart.push({ ...prod, qty });
       }
       renderCart();
     }
@@ -364,7 +522,7 @@
       const container = document.getElementById('cart-items');
       const totalEl = document.getElementById('cart-total');
       const btn = document.getElementById('btn-checkout');
-      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalItems = cart.reduce((sum, item) => sum + (item.unit === 'pz' ? item.qty : 1), 0);
 
       document.getElementById('mob-cart-badge').innerText = totalItems;
       document.getElementById('desk-cart-badge').innerText = totalItems;
@@ -384,7 +542,7 @@
         total += subtotal;
         return `
           <div class="flex justify-between text-sm items-center border-b pb-1">
-            <span>${item.name} x${item.qty}</span>
+            <span>${item.name} (${item.qty} ${item.unit || 'pz'})</span>
             <span class="font-semibold">$${subtotal.toFixed(2)}</span>
           </div>
         `;
@@ -429,7 +587,7 @@
       const itemsContainer = document.getElementById('ticket-items');
       itemsContainer.innerHTML = items.map(i => `
         <div class="flex justify-between">
-          <span>${i.name} x${i.qty}</span>
+          <span>${i.name} x${i.qty} ${i.unit || 'pz'}</span>
           <span>$${(i.price * i.qty).toFixed(2)}</span>
         </div>
       `).join('');
@@ -448,24 +606,21 @@
           return;
         }
 
-        // CALCULAR CORTE DIARIO (Hoy)
         const todayStr = new Date().toISOString().split('T')[0];
-        let totalHoy = 0, efecHoy = 0, tarjHoy = 0, transHoy = 0;
+        let totalHoy = 0, efecHoy = 0, digitalHoy = 0;
 
         sales.forEach(s => {
           const saleDate = new Date(s.created_at).toISOString().split('T')[0];
           if (saleDate === todayStr) {
             totalHoy += s.total;
-            if (s.payment_method === 'Tarjeta') tarjHoy += s.total;
-            else if (s.payment_method === 'Transferencia') transHoy += s.total;
-            else efecHoy += s.total;
+            if (s.payment_method === 'Efectivo' || !s.payment_method) efecHoy += s.total;
+            else digitalHoy += s.total;
           }
         });
 
         document.getElementById('corte-total').innerText = `$${totalHoy.toFixed(2)}`;
         document.getElementById('corte-efectivo').innerText = `$${efecHoy.toFixed(2)}`;
-        document.getElementById('corte-tarjeta').innerText = `$${tarjHoy.toFixed(2)}`;
-        document.getElementById('corte-transfer').innerText = `$${transHoy.toFixed(2)}`;
+        document.getElementById('corte-digital').innerText = `$${digitalHoy.toFixed(2)}`;
 
         container.innerHTML = sales.map(s => `
           <div class="border p-2 rounded flex justify-between items-center text-xs bg-gray-50">
@@ -478,6 +633,66 @@
         `).join('');
       } catch (err) {
         console.error("Error al cargar ventas:", err);
+      }
+    }
+
+    // LOGICA DE QR Y ESCANER
+    function showQrModal(id) {
+      const p = products.find(prod => prod.id === id);
+      if (!p || !p.barcode) return;
+      document.getElementById('qr-modal-name').innerText = p.name;
+      document.getElementById('qr-modal-code').innerText = `Código: ${p.barcode}`;
+      
+      const container = document.getElementById('qr-modal-canvas');
+      container.innerHTML = '<canvas id="qr-canvas"></canvas>';
+      QRCode.toCanvas(document.getElementById('qr-canvas'), p.barcode, { width: 180 });
+      
+      document.getElementById('qr-modal').classList.remove('hidden');
+    }
+
+    function closeQrModal() {
+      document.getElementById('qr-modal').classList.add('hidden');
+    }
+
+    function printQrLabel() {
+      window.print();
+    }
+
+    function toggleScanner(target) {
+      const container = document.getElementById('scanner-container');
+      if (!container.classList.contains('hidden')) {
+        stopScanner();
+        return;
+      }
+      container.classList.remove('hidden');
+
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          const matched = products.find(p => p.barcode === decodedText || p.id === decodedText);
+          if (matched) {
+            addToCart(matched.id);
+            alert(`✅ Producto agregado: ${matched.name}`);
+          } else {
+            document.getElementById('search-sales').value = decodedText;
+            renderCatalog();
+          }
+          stopScanner();
+        },
+        (errorMessage) => {}
+      );
+    }
+
+    function stopScanner() {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+          document.getElementById('scanner-container').classList.add('hidden');
+          html5QrcodeScanner = null;
+        }).catch(err => {
+          document.getElementById('scanner-container').classList.add('hidden');
+        });
       }
     }
 
