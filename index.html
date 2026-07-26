@@ -3,31 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Punto de Venta</title>
+  <title>Punto de Venta Profesional</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #printable-ticket, #printable-ticket * { visibility: visible; }
+      #printable-ticket { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col pb-16 md:pb-0">
 
-  <!-- HEADER + NAVEGACIÓN COMPUTADORA -->
+  <!-- HEADER + NAVEGACIÓN PC -->
   <header class="bg-blue-600 text-white shadow-md sticky top-0 z-10">
     <div class="max-w-4xl mx-auto p-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold flex items-center gap-2">🛒 Sistema POS</h1>
+      <h1 class="text-xl font-bold flex items-center gap-2">🛒 POS Pro</h1>
       
-      <!-- Pestañas para COMPUTADORA (pantallas md o más grandes) -->
       <nav class="hidden md:flex space-x-2">
-        <button onclick="switchTab('sales')" id="desk-nav-sales" class="px-4 py-2 rounded-lg font-semibold text-sm bg-blue-700 text-white">
+        <button onclick="switchTab('sales')" id="desk-nav-sales" class="px-3 py-2 rounded-lg font-semibold text-sm bg-blue-700 text-white">
           🛍️ Venta
         </button>
-        <button onclick="switchTab('cart')" id="desk-nav-cart" class="px-4 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700 relative">
+        <button onclick="switchTab('cart')" id="desk-nav-cart" class="px-3 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700 relative">
           🧾 Carrito
           <span id="desk-cart-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">0</span>
         </button>
-        <button onclick="switchTab('inventory')" id="desk-nav-inventory" class="px-4 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700">
+        <button onclick="switchTab('inventory')" id="desk-nav-inventory" class="px-3 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700">
           📦 Inventario
         </button>
+        <button onclick="switchTab('reports')" id="desk-nav-reports" class="px-3 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700">
+          📊 Reportes & Corte
+        </button>
       </nav>
-
-      <span class="text-xs bg-blue-700 px-2 py-1 rounded hidden sm:inline">En línea</span>
     </div>
   </header>
 
@@ -36,68 +43,165 @@
     
     <!-- PESTAÑA 1: VENTA / CATÁLOGO -->
     <section id="tab-sales" class="tab-content space-y-4">
-      <h2 class="text-lg font-bold text-gray-700">Catálogo de Productos</h2>
+      <div class="flex justify-between items-center gap-2">
+        <input type="text" id="search-sales" oninput="renderCatalog()" placeholder="🔍 Buscar producto por nombre o categoría..." class="w-full p-2 border rounded-lg text-sm shadow-sm">
+      </div>
       <div id="catalog-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <p class="text-gray-400 text-sm col-span-full">Cargando catálogo...</p>
       </div>
     </section>
 
-    <!-- PESTAÑA 2: INVENTARIO (Agregar / Ver / Borrar) -->
+    <!-- PESTAÑA 2: INVENTARIO -->
     <section id="tab-inventory" class="tab-content hidden space-y-6">
       <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 class="text-lg font-bold mb-3 text-gray-700">➕ Agregar Nuevo Producto</h2>
+        <h2 id="form-title" class="text-lg font-bold mb-3 text-gray-700">➕ Agregar / Editar Producto</h2>
         <form id="form-product" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="hidden" id="p-id">
           <input type="text" id="p-name" placeholder="Nombre (ej. Coca Cola)" class="border p-2 text-sm rounded sm:col-span-2" required>
           <input type="text" id="p-cat" placeholder="Categoría" class="border p-2 text-sm rounded" required>
           <input type="number" step="0.5" id="p-price" placeholder="Precio ($)" class="border p-2 text-sm rounded" required>
           <input type="number" id="p-stock" placeholder="Stock disponible" class="border p-2 text-sm rounded sm:col-span-2" required>
-          <button type="submit" class="sm:col-span-2 bg-green-600 text-white font-bold py-2 text-sm rounded hover:bg-green-700 transition">
-            Guardar en Inventario
-          </button>
+          
+          <div class="sm:col-span-2 flex gap-2">
+            <button type="submit" id="btn-save-prod" class="flex-1 bg-green-600 text-white font-bold py-2 text-sm rounded hover:bg-green-700">
+              Guardar
+            </button>
+            <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden bg-gray-400 text-white font-bold px-4 py-2 text-sm rounded hover:bg-gray-500">
+              Cancelar
+            </button>
+          </div>
         </form>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 class="text-lg font-bold mb-3 text-gray-700">📦 Control de Inventario</h2>
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-lg font-bold text-gray-700">📦 Control de Inventario</h2>
+        </div>
+        <input type="text" id="search-inventory" oninput="renderInventory()" placeholder="🔍 Filtrar inventario..." class="w-full p-2 border rounded-lg text-sm mb-3">
         <div id="inventory-list" class="space-y-2">
           <p class="text-gray-400 text-sm">Cargando inventario...</p>
         </div>
       </div>
     </section>
 
-    <!-- PESTAÑA 3: CARRITO & COBRO -->
+    <!-- PESTAÑA 3: CARRITO, MÉTODOS DE PAGO Y COBRO -->
     <section id="tab-cart" class="tab-content hidden space-y-4 max-w-lg mx-auto">
       <div class="bg-white p-4 rounded-lg shadow-md">
         <h2 class="text-lg font-bold mb-3 text-gray-700">🧾 Detalle de la Venta</h2>
         <div id="cart-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
           <p class="text-gray-400 text-sm">El carrito está vacío.</p>
         </div>
-        <div class="border-t pt-3 flex justify-between text-xl font-bold mb-4">
-          <span>Total:</span>
-          <span id="cart-total">$0.00</span>
+        
+        <div class="border-t pt-3 space-y-3">
+          <div class="flex justify-between text-xl font-bold">
+            <span>Total:</span>
+            <span id="cart-total">$0.00</span>
+          </div>
+
+          <!-- Selección Método de Pago -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-gray-600">MÉTODO DE PAGO</label>
+            <select id="payment-method" onchange="toggleCashInput()" class="w-full border p-2 rounded text-sm bg-gray-50 font-semibold">
+              <option value="Efectivo">💵 Efectivo</option>
+              <option value="Tarjeta">💳 Tarjeta (Débito/Crédito)</option>
+              <option value="Transferencia">📲 Transferencia SPEI</option>
+            </select>
+          </div>
+
+          <!-- Cálculo de Cambio para Efectivo -->
+          <div id="cash-calculator" class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <label class="block text-xs text-gray-500">Monto Recibido:</label>
+              <input type="number" id="cash-received" oninput="calculateChange()" placeholder="$0.00" class="w-full border p-2 text-sm rounded">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500">Cambio a Entregar:</label>
+              <div id="cash-change" class="p-2 text-sm font-bold text-blue-600 bg-blue-50 border rounded">$0.00</div>
+            </div>
+          </div>
+
+          <button id="btn-checkout" onclick="checkout()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled>
+            Cobrar y Generar Ticket
+          </button>
         </div>
-        <button id="btn-checkout" onclick="checkout()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50" disabled>
-          Cobrar
-        </button>
+      </div>
+    </section>
+
+    <!-- PESTAÑA 4: REPORTES & CORTE DE CAJA -->
+    <section id="tab-reports" class="tab-content hidden space-y-4">
+      
+      <!-- RESUMEN / CORTE DIARIO -->
+      <div class="bg-white p-4 rounded-lg shadow-md space-y-3">
+        <h2 class="text-lg font-bold text-gray-700 flex justify-between items-center">
+          <span>📊 Corte de Caja (Hoy)</span>
+          <button onclick="fetchSales()" class="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">🔄 Actualizar</button>
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-xs text-green-600 font-bold">TOTAL VENDIDO</p>
+            <p id="corte-total" class="text-lg font-extrabold text-green-700">$0.00</p>
+          </div>
+          <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p class="text-xs text-blue-600 font-bold">EFECTIVO</p>
+            <p id="corte-efectivo" class="text-md font-bold text-blue-700">$0.00</p>
+          </div>
+          <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
+            <p class="text-xs text-purple-600 font-bold">TARJETA</p>
+            <p id="corte-tarjeta" class="text-md font-bold text-purple-700">$0.00</p>
+          </div>
+          <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <p class="text-xs text-orange-600 font-bold">TRANSFERENCIA</p>
+            <p id="corte-transfer" class="text-md font-bold text-orange-700">$0.00</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORIAL DE VENTAS -->
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <h3 class="font-bold text-gray-700 mb-2 text-sm">Historial de Transacciones</h3>
+        <div id="sales-history" class="space-y-2 max-h-80 overflow-y-auto">
+          <p class="text-gray-400 text-sm">Cargando ventas...</p>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <!-- NAVEGACIÓN INFERIOR PARA CELULAR (pantallas pequeñas) -->
+  <!-- PLANTILLA DE TICKET OCULTA (SOLO PARA IMPRESIÓN / VISTA PREVIA) -->
+  <div id="printable-ticket" class="hidden p-4 bg-white text-black font-mono text-xs max-w-xs mx-auto">
+    <div class="text-center mb-2">
+      <h2 class="font-bold text-sm">MI NEGOCIO / POS</h2>
+      <p id="ticket-date" class="text-[10px]"></p>
+      <p id="ticket-id" class="text-[10px]"></p>
+      <p>--------------------------------</p>
+    </div>
+    <div id="ticket-items" class="space-y-1"></div>
+    <p class="mt-2">--------------------------------</p>
+    <div class="flex justify-between font-bold text-sm">
+      <span>TOTAL:</span>
+      <span id="ticket-total">$0.00</span>
+    </div>
+    <div class="flex justify-between text-[10px] mt-1">
+      <span>Método de Pago:</span>
+      <span id="ticket-method">Efectivo</span>
+    </div>
+    <p class="text-center mt-4">¡Gracias por su compra!</p>
+  </div>
+
+  <!-- NAVEGACIÓN INFERIOR CELULAR -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 shadow-lg z-20">
     <button onclick="switchTab('sales')" id="mob-nav-sales" class="flex flex-col items-center text-blue-600 font-bold text-xs">
-      <span class="text-lg">🛍️</span>
-      Venta
+      <span class="text-lg">🛍️</span>Venta
     </button>
     <button onclick="switchTab('cart')" id="mob-nav-cart" class="flex flex-col items-center text-gray-500 text-xs relative">
-      <span class="text-lg">🧾</span>
-      Carrito
+      <span class="text-lg">🧾</span>Carrito
       <span id="mob-cart-badge" class="hidden absolute -top-1 right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
     </button>
     <button onclick="switchTab('inventory')" id="mob-nav-inventory" class="flex flex-col items-center text-gray-500 text-xs">
-      <span class="text-lg">📦</span>
-      Inventario
+      <span class="text-lg">📦</span>Inventario
+    </button>
+    <button onclick="switchTab('reports')" id="mob-nav-reports" class="flex flex-col items-center text-gray-500 text-xs">
+      <span class="text-lg">📊</span>Reportes
     </button>
   </nav>
 
@@ -110,22 +214,14 @@
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-      // Actualizar estilo en Celular
-      ['sales', 'cart', 'inventory'].forEach(t => {
+      if (tabName === 'reports') fetchSales();
+
+      ['sales', 'cart', 'inventory', 'reports'].forEach(t => {
         const mobBtn = document.getElementById(`mob-nav-${t}`);
-        if (mobBtn) {
-          mobBtn.className = t === tabName 
-            ? "flex flex-col items-center text-blue-600 font-bold text-xs relative" 
-            : "flex flex-col items-center text-gray-500 text-xs relative";
-        }
+        if (mobBtn) mobBtn.className = t === tabName ? "flex flex-col items-center text-blue-600 font-bold text-xs relative" : "flex flex-col items-center text-gray-500 text-xs relative";
         
-        // Actualizar estilo en PC
         const deskBtn = document.getElementById(`desk-nav-${t}`);
-        if (deskBtn) {
-          deskBtn.className = t === tabName
-            ? "px-4 py-2 rounded-lg font-semibold text-sm bg-blue-700 text-white relative"
-            : "px-4 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700 relative";
-        }
+        if (deskBtn) deskBtn.className = t === tabName ? "px-3 py-2 rounded-lg font-semibold text-sm bg-blue-700 text-white relative" : "px-3 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700 relative";
       });
     }
 
@@ -141,81 +237,108 @@
     }
 
     function renderCatalog() {
+      const query = document.getElementById('search-sales').value.toLowerCase();
       const container = document.getElementById('catalog-list');
-      if (!products || products.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-sm col-span-full">No hay productos registrados.</p>';
+      const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm col-span-full">No se encontraron productos.</p>';
         return;
       }
-      container.innerHTML = products.map(p => `
+
+      container.innerHTML = filtered.map(p => `
         <div class="border p-3 rounded-lg flex justify-between items-center bg-white shadow-sm">
           <div>
             <h3 class="font-bold text-gray-800 text-sm">${p.name}</h3>
-            <p class="text-xs text-gray-500">${p.category} | Stock: ${p.stock}</p>
+            <p class="text-xs text-gray-500">${p.category} | Stock: <span class="${p.stock <= 5 ? 'text-red-500 font-bold' : ''}">${p.stock}</span></p>
             <p class="text-sm font-semibold text-green-600">$${p.price}</p>
           </div>
-          <button onclick="addToCart('${p.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700">
-            + Agregar
+          <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700 disabled:bg-gray-300">
+            ${p.stock <= 0 ? 'Agotado' : '+ Agregar'}
           </button>
         </div>
       `).join('');
     }
 
     function renderInventory() {
+      const query = document.getElementById('search-inventory').value.toLowerCase();
       const container = document.getElementById('inventory-list');
-      if (!products || products.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-sm">Sin productos en inventario.</p>';
+      const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">Sin coincidencias.</p>';
         return;
       }
-      container.innerHTML = products.map(p => `
+
+      container.innerHTML = filtered.map(p => `
         <div class="border p-2 rounded flex justify-between items-center text-xs bg-gray-50">
           <div>
             <span class="font-bold text-gray-800">${p.name}</span>
-            <span class="text-gray-500">($${p.price} - Stock: ${p.stock})</span>
+            <span class="text-gray-500">($${p.price} - Stock: <b>${p.stock}</b>)</span>
           </div>
-          <button onclick="deleteProduct('${p.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">
-            🗑️ Borrar
-          </button>
+          <div class="flex gap-1">
+            <button onclick="editProduct('${p.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">✏️ Editar</button>
+            <button onclick="deleteProduct('${p.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">🗑️</button>
+          </div>
         </div>
       `).join('');
     }
 
     document.getElementById('form-product').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const newProd = {
-        id: "p_" + Date.now(),
+      const id = document.getElementById('p-id').value;
+      const prodData = {
+        id: id || "p_" + Date.now(),
         name: document.getElementById('p-name').value,
         category: document.getElementById('p-cat').value,
         price: parseFloat(document.getElementById('p-price').value),
         stock: parseInt(document.getElementById('p-stock').value)
       };
 
-      await fetch(`${API_URL}/products`, {
-        method: 'POST',
+      await fetch(id ? `${API_URL}/products/${id}` : `${API_URL}/products`, {
+        method: id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProd)
+        body: JSON.stringify(prodData)
       });
 
-      e.target.reset();
+      resetForm();
       fetchProducts();
-      alert("Producto agregado correctamente.");
     });
+
+    function editProduct(id) {
+      const p = products.find(prod => prod.id === id);
+      if (!p) return;
+      document.getElementById('p-id').value = p.id;
+      document.getElementById('p-name').value = p.name;
+      document.getElementById('p-cat').value = p.category;
+      document.getElementById('p-price').value = p.price;
+      document.getElementById('p-stock').value = p.stock;
+      document.getElementById('form-title').innerText = "✏️ Editar Producto / Stock";
+      document.getElementById('btn-save-prod').innerText = "Actualizar";
+      document.getElementById('btn-cancel-edit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      document.getElementById('form-product').reset();
+      document.getElementById('p-id').value = '';
+      document.getElementById('form-title').innerText = "➕ Agregar / Editar Producto";
+      document.getElementById('btn-save-prod').innerText = "Guardar";
+      document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
 
     async function deleteProduct(id) {
       if (!confirm("¿Seguro que deseas eliminar este producto?")) return;
-      try {
-        await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
-        fetchProducts();
-      } catch (err) {
-        console.error("Error al borrar:", err);
-      }
+      await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
+      fetchProducts();
     }
 
     function addToCart(id) {
       const prod = products.find(p => p.id === id);
       if (!prod) return;
-      
       const item = cart.find(c => c.id === id);
       if (item) {
+        if (item.qty >= prod.stock) { alert("Stock máximo alcanzado."); return; }
         item.qty++;
       } else {
         cart.push({ ...prod, qty: 1 });
@@ -223,25 +346,30 @@
       renderCart();
     }
 
+    function toggleCashInput() {
+      const method = document.getElementById('payment-method').value;
+      const cashCalc = document.getElementById('cash-calculator');
+      cashCalc.style.display = method === 'Efectivo' ? 'grid' : 'none';
+    }
+
+    function calculateChange() {
+      const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const received = parseFloat(document.getElementById('cash-received').value) || 0;
+      const change = received - total;
+      const changeEl = document.getElementById('cash-change');
+      changeEl.innerText = `$${(change > 0 ? change : 0).toFixed(2)}`;
+    }
+
     function renderCart() {
       const container = document.getElementById('cart-items');
       const totalEl = document.getElementById('cart-total');
       const btn = document.getElementById('btn-checkout');
-      const mobBadge = document.getElementById('mob-cart-badge');
-      const deskBadge = document.getElementById('desk-cart-badge');
-
       const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
-      [mobBadge, deskBadge].forEach(b => {
-        if (b) {
-          if (totalItems > 0) {
-            b.innerText = totalItems;
-            b.classList.remove('hidden');
-          } else {
-            b.classList.add('hidden');
-          }
-        }
-      });
+      document.getElementById('mob-cart-badge').innerText = totalItems;
+      document.getElementById('desk-cart-badge').innerText = totalItems;
+      document.getElementById('mob-cart-badge').classList.toggle('hidden', totalItems === 0);
+      document.getElementById('desk-cart-badge').classList.toggle('hidden', totalItems === 0);
 
       if (cart.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-sm">El carrito está vacío.</p>';
@@ -264,13 +392,93 @@
 
       totalEl.innerText = `$${total.toFixed(2)}`;
       btn.disabled = false;
+      calculateChange();
     }
 
-    function checkout() {
-      alert("¡Venta completada con éxito!");
-      cart = [];
-      renderCart();
-      switchTab('sales');
+    async function checkout() {
+      const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const method = document.getElementById('payment-method').value;
+
+      try {
+        const res = await fetch(`${API_URL}/sales`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: cart, total, payment_method: method })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          printTicket(data.saleId || 'T-' + Date.now(), cart, total, method);
+          cart = [];
+          document.getElementById('cash-received').value = '';
+          renderCart();
+          fetchProducts();
+          switchTab('sales');
+        }
+      } catch (err) {
+        console.error("Error al cobro:", err);
+      }
+    }
+
+    function printTicket(id, items, total, method) {
+      document.getElementById('ticket-id').innerText = `Folio: ${id}`;
+      document.getElementById('ticket-date').innerText = new Date().toLocaleString();
+      document.getElementById('ticket-total').innerText = `$${total.toFixed(2)}`;
+      document.getElementById('ticket-method').innerText = method;
+
+      const itemsContainer = document.getElementById('ticket-items');
+      itemsContainer.innerHTML = items.map(i => `
+        <div class="flex justify-between">
+          <span>${i.name} x${i.qty}</span>
+          <span>$${(i.price * i.qty).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      window.print();
+    }
+
+    async function fetchSales() {
+      try {
+        const res = await fetch(`${API_URL}/sales`);
+        const sales = await res.json();
+        const container = document.getElementById('sales-history');
+
+        if (!sales || sales.length === 0) {
+          container.innerHTML = '<p class="text-gray-400 text-sm">No hay ventas registradas.</p>';
+          return;
+        }
+
+        // CALCULAR CORTE DIARIO (Hoy)
+        const todayStr = new Date().toISOString().split('T')[0];
+        let totalHoy = 0, efecHoy = 0, tarjHoy = 0, transHoy = 0;
+
+        sales.forEach(s => {
+          const saleDate = new Date(s.created_at).toISOString().split('T')[0];
+          if (saleDate === todayStr) {
+            totalHoy += s.total;
+            if (s.payment_method === 'Tarjeta') tarjHoy += s.total;
+            else if (s.payment_method === 'Transferencia') transHoy += s.total;
+            else efecHoy += s.total;
+          }
+        });
+
+        document.getElementById('corte-total').innerText = `$${totalHoy.toFixed(2)}`;
+        document.getElementById('corte-efectivo').innerText = `$${efecHoy.toFixed(2)}`;
+        document.getElementById('corte-tarjeta').innerText = `$${tarjHoy.toFixed(2)}`;
+        document.getElementById('corte-transfer').innerText = `$${transHoy.toFixed(2)}`;
+
+        container.innerHTML = sales.map(s => `
+          <div class="border p-2 rounded flex justify-between items-center text-xs bg-gray-50">
+            <div>
+              <p class="font-bold text-gray-800">${s.id} (${s.payment_method || 'Efectivo'})</p>
+              <p class="text-gray-500">${new Date(s.created_at).toLocaleString()}</p>
+            </div>
+            <span class="font-bold text-green-600 text-sm">$${s.total.toFixed(2)}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error("Error al cargar ventas:", err);
+      }
     }
 
     fetchProducts();
