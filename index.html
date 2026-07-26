@@ -6,51 +6,77 @@
   <title>Punto de Venta</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col pb-16 md:pb-0">
 
-  <header class="bg-blue-600 text-white p-4 shadow-lg flex justify-between items-center">
-    <h1 class="text-xl font-bold">🛒 Sistema POS</h1>
-    <span class="text-xs bg-blue-700 px-2 py-1 rounded">En línea</span>
+  <!-- HEADER + NAVEGACIÓN COMPUTADORA -->
+  <header class="bg-blue-600 text-white shadow-md sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto p-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold flex items-center gap-2">🛒 Sistema POS</h1>
+      
+      <!-- Pestañas para COMPUTADORA (pantallas md o más grandes) -->
+      <nav class="hidden md:flex space-x-2">
+        <button onclick="switchTab('sales')" id="desk-nav-sales" class="px-4 py-2 rounded-lg font-semibold text-sm bg-blue-700 text-white">
+          🛍️ Venta
+        </button>
+        <button onclick="switchTab('cart')" id="desk-nav-cart" class="px-4 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700 relative">
+          🧾 Carrito
+          <span id="desk-cart-badge" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">0</span>
+        </button>
+        <button onclick="switchTab('inventory')" id="desk-nav-inventory" class="px-4 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700">
+          📦 Inventario
+        </button>
+      </nav>
+
+      <span class="text-xs bg-blue-700 px-2 py-1 rounded hidden sm:inline">En línea</span>
+    </div>
   </header>
 
-  <main class="flex-1 p-4 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 p-4 max-w-4xl mx-auto w-full">
     
-    <section class="md:col-span-2 space-y-6">
+    <!-- PESTAÑA 1: VENTA / CATÁLOGO -->
+    <section id="tab-sales" class="tab-content space-y-4">
+      <h2 class="text-lg font-bold text-gray-700">Catálogo de Productos</h2>
+      <div id="catalog-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <p class="text-gray-400 text-sm col-span-full">Cargando catálogo...</p>
+      </div>
+    </section>
+
+    <!-- PESTAÑA 2: INVENTARIO (Agregar / Ver / Borrar) -->
+    <section id="tab-inventory" class="tab-content hidden space-y-6">
       <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 class="text-lg font-bold mb-3 text-gray-700">➕ Nuevo Producto</h2>
-        <form id="form-product" class="grid grid-cols-2 gap-3">
-          <input type="text" id="p-name" placeholder="Nombre (ej. Coca Cola)" class="border p-2 rounded col-span-2" required>
-          <input type="text" id="p-cat" placeholder="Categoría" class="border p-2 rounded" required>
-          <input type="number" step="0.5" id="p-price" placeholder="Precio ($)" class="border p-2 rounded" required>
-          <input type="number" id="p-stock" placeholder="Stock" class="border p-2 rounded col-span-2" required>
-          <button type="submit" class="col-span-2 bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700 transition">
+        <h2 class="text-lg font-bold mb-3 text-gray-700">➕ Agregar Nuevo Producto</h2>
+        <form id="form-product" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="text" id="p-name" placeholder="Nombre (ej. Coca Cola)" class="border p-2 text-sm rounded sm:col-span-2" required>
+          <input type="text" id="p-cat" placeholder="Categoría" class="border p-2 text-sm rounded" required>
+          <input type="number" step="0.5" id="p-price" placeholder="Precio ($)" class="border p-2 text-sm rounded" required>
+          <input type="number" id="p-stock" placeholder="Stock disponible" class="border p-2 text-sm rounded sm:col-span-2" required>
+          <button type="submit" class="sm:col-span-2 bg-green-600 text-white font-bold py-2 text-sm rounded hover:bg-green-700 transition">
             Guardar en Inventario
           </button>
         </form>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 class="text-lg font-bold mb-3 text-gray-700">📦 Catálogo de Productos</h2>
-        <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <p class="text-gray-400 text-sm">Cargando productos...</p>
+        <h2 class="text-lg font-bold mb-3 text-gray-700">📦 Control de Inventario</h2>
+        <div id="inventory-list" class="space-y-2">
+          <p class="text-gray-400 text-sm">Cargando inventario...</p>
         </div>
       </div>
     </section>
 
-    <section class="bg-white p-4 rounded-lg shadow-md flex flex-col justify-between h-fit">
-      <div>
-        <h2 class="text-lg font-bold mb-3 text-gray-700">🧾 Carrito de Compra</h2>
+    <!-- PESTAÑA 3: CARRITO & COBRO -->
+    <section id="tab-cart" class="tab-content hidden space-y-4 max-w-lg mx-auto">
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <h2 class="text-lg font-bold mb-3 text-gray-700">🧾 Detalle de la Venta</h2>
         <div id="cart-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
           <p class="text-gray-400 text-sm">El carrito está vacío.</p>
         </div>
-      </div>
-
-      <div class="border-t pt-4">
-        <div class="flex justify-between text-xl font-bold mb-4">
+        <div class="border-t pt-3 flex justify-between text-xl font-bold mb-4">
           <span>Total:</span>
           <span id="cart-total">$0.00</span>
         </div>
-        <button id="btn-checkout" onclick="checkout()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition" disabled>
+        <button id="btn-checkout" onclick="checkout()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50" disabled>
           Cobrar
         </button>
       </div>
@@ -58,42 +84,97 @@
 
   </main>
 
+  <!-- NAVEGACIÓN INFERIOR PARA CELULAR (pantallas pequeñas) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 shadow-lg z-20">
+    <button onclick="switchTab('sales')" id="mob-nav-sales" class="flex flex-col items-center text-blue-600 font-bold text-xs">
+      <span class="text-lg">🛍️</span>
+      Venta
+    </button>
+    <button onclick="switchTab('cart')" id="mob-nav-cart" class="flex flex-col items-center text-gray-500 text-xs relative">
+      <span class="text-lg">🧾</span>
+      Carrito
+      <span id="mob-cart-badge" class="hidden absolute -top-1 right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+    </button>
+    <button onclick="switchTab('inventory')" id="mob-nav-inventory" class="flex flex-col items-center text-gray-500 text-xs">
+      <span class="text-lg">📦</span>
+      Inventario
+    </button>
+  </nav>
+
   <script>
     const API_URL = "https://pos-backend-api.nunezalfonso313.workers.dev/api";
     let cart = [];
     let products = [];
 
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      // Actualizar estilo en Celular
+      ['sales', 'cart', 'inventory'].forEach(t => {
+        const mobBtn = document.getElementById(`mob-nav-${t}`);
+        if (mobBtn) {
+          mobBtn.className = t === tabName 
+            ? "flex flex-col items-center text-blue-600 font-bold text-xs relative" 
+            : "flex flex-col items-center text-gray-500 text-xs relative";
+        }
+        
+        // Actualizar estilo en PC
+        const deskBtn = document.getElementById(`desk-nav-${t}`);
+        if (deskBtn) {
+          deskBtn.className = t === tabName
+            ? "px-4 py-2 rounded-lg font-semibold text-sm bg-blue-700 text-white relative"
+            : "px-4 py-2 rounded-lg font-semibold text-sm bg-blue-600 text-blue-100 hover:bg-blue-700 relative";
+        }
+      });
+    }
+
     async function fetchProducts() {
       try {
         const res = await fetch(`${API_URL}/products`);
         products = await res.json();
-        renderProducts();
+        renderCatalog();
+        renderInventory();
       } catch (err) {
         console.error("Error al cargar productos:", err);
       }
     }
 
-    function renderProducts() {
-      const container = document.getElementById('product-list');
+    function renderCatalog() {
+      const container = document.getElementById('catalog-list');
       if (!products || products.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-sm col-span-2">No hay productos registrados.</p>';
+        container.innerHTML = '<p class="text-gray-400 text-sm col-span-full">No hay productos registrados.</p>';
         return;
       }
       container.innerHTML = products.map(p => `
-        <div class="border p-3 rounded-lg flex justify-between items-center bg-gray-50">
+        <div class="border p-3 rounded-lg flex justify-between items-center bg-white shadow-sm">
           <div>
-            <h3 class="font-bold text-gray-800">${p.name}</h3>
+            <h3 class="font-bold text-gray-800 text-sm">${p.name}</h3>
             <p class="text-xs text-gray-500">${p.category} | Stock: ${p.stock}</p>
             <p class="text-sm font-semibold text-green-600">$${p.price}</p>
           </div>
-          <div class="flex flex-col gap-1">
-            <button onclick="addToCart('${p.id}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">
-              + Agregar
-            </button>
-            <button onclick="deleteProduct('${p.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">
-              🗑️ Borrar
-            </button>
+          <button onclick="addToCart('${p.id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700">
+            + Agregar
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderInventory() {
+      const container = document.getElementById('inventory-list');
+      if (!products || products.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">Sin productos en inventario.</p>';
+        return;
+      }
+      container.innerHTML = products.map(p => `
+        <div class="border p-2 rounded flex justify-between items-center text-xs bg-gray-50">
+          <div>
+            <span class="font-bold text-gray-800">${p.name}</span>
+            <span class="text-gray-500">($${p.price} - Stock: ${p.stock})</span>
           </div>
+          <button onclick="deleteProduct('${p.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">
+            🗑️ Borrar
+          </button>
         </div>
       `).join('');
     }
@@ -116,18 +197,16 @@
 
       e.target.reset();
       fetchProducts();
+      alert("Producto agregado correctamente.");
     });
 
     async function deleteProduct(id) {
       if (!confirm("¿Seguro que deseas eliminar este producto?")) return;
-      
       try {
-        await fetch(`${API_URL}/products/${id}`, {
-          method: 'DELETE'
-        });
+        await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
         fetchProducts();
       } catch (err) {
-        console.error("Error al eliminar:", err);
+        console.error("Error al borrar:", err);
       }
     }
 
@@ -148,6 +227,21 @@
       const container = document.getElementById('cart-items');
       const totalEl = document.getElementById('cart-total');
       const btn = document.getElementById('btn-checkout');
+      const mobBadge = document.getElementById('mob-cart-badge');
+      const deskBadge = document.getElementById('desk-cart-badge');
+
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+
+      [mobBadge, deskBadge].forEach(b => {
+        if (b) {
+          if (totalItems > 0) {
+            b.innerText = totalItems;
+            b.classList.remove('hidden');
+          } else {
+            b.classList.add('hidden');
+          }
+        }
+      });
 
       if (cart.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-sm">El carrito está vacío.</p>';
@@ -176,6 +270,7 @@
       alert("¡Venta completada con éxito!");
       cart = [];
       renderCart();
+      switchTab('sales');
     }
 
     fetchProducts();
