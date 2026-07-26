@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Punto de Venta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+
+  <header class="bg-blue-600 text-white p-4 shadow-lg flex justify-between items-center">
+    <h1 class="text-xl font-bold">🛒 Sistema POS</h1>
+    <span class="text-xs bg-blue-700 px-2 py-1 rounded">En línea</span>
+  </header>
+
+  <main class="flex-1 p-4 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+    
+    <section class="md:col-span-2 space-y-6">
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <h2 class="text-lg font-bold mb-3 text-gray-700">➕ Nuevo Producto</h2>
+        <form id="form-product" class="grid grid-cols-2 gap-3">
+          <input type="text" id="p-name" placeholder="Nombre (ej. Coca Cola)" class="border p-2 rounded col-span-2" required>
+          <input type="text" id="p-cat" placeholder="Categoría" class="border p-2 rounded" required>
+          <input type="number" step="0.5" id="p-price" placeholder="Precio ($)" class="border p-2 rounded" required>
+          <input type="number" id="p-stock" placeholder="Stock" class="border p-2 rounded col-span-2" required>
+          <button type="submit" class="col-span-2 bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700 transition">
+            Guardar en Inventario
+          </button>
+        </form>
+      </div>
+
+      <div class="bg-white p-4 rounded-lg shadow-md">
