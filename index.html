@@ -210,6 +210,9 @@ Cancelar
 <button id="btn-checkout" onclick="checkout()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled>
 Cobrar y Generar Ticket
 </button>
+<button id="btn-clear-cart" onclick="clearCart()" class="w-full bg-gray-300 text-gray-700 font-bold py-2 rounded-lg hover:bg-gray-400 text-sm">
+Cancelar Venta (vaciar carrito)
+</button>
 </div>
 </div>
 </section>
@@ -591,6 +594,18 @@ cart.push({ ...prod, qty });
 renderCart();
 }
 
+function removeFromCart(id) {
+cart = cart.filter(item => item.id !== id);
+renderCart();
+}
+
+function clearCart() {
+if (cart.length === 0) return;
+if (!confirm("¿Cancelar la venta y vaciar el carrito?")) return;
+cart = [];
+renderCart();
+}
+
 function toggleCashInput() {
 const method = document.getElementById('payment-method').value;
 const cashCalc = document.getElementById('cash-calculator');
@@ -627,7 +642,10 @@ total += subtotal;
 return `
 <div class="flex justify-between text-sm items-center border-b pb-1">
 <span>${item.name} (${item.qty} ${item.unit || 'pz'})</span>
-<span class="font-semibold">$${subtotal.toFixed(2)}</span>
+<div class="flex items-center gap-2">
+<span class="font-semibold">${subtotal.toFixed(2)}</span>
+<button onclick="removeFromCart('${item.id}')" class="text-red-500 font-bold px-1" title="Quitar producto">✕</button>
+</div>
 </div>
 `;
 }).join('');
